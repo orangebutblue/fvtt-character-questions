@@ -1,0 +1,53 @@
+{
+  "background": [
+    "What was your character's childhood like?",
+    "Where and how did your character grow up?",
+    "What is your character's family background?",
+    "Did your character have any significant life events before adventuring?"
+  ],
+  "motivations": [
+    "What drives your character to adventure?",
+    "Is there a specific goal or ambition your character is pursuing?",
+    "What does your character hope to achieve in the long term?"
+  ],
+  "personality": [
+    "How does your character handle stress or pressure?",
+    "What are your character's most prominent personality traits?",
+    "How does your character react to failure or success?"
+  ],
+  "values": [
+    "Does your character have any religious or spiritual beliefs?",
+    "What moral or ethical principles does your character uphold?",
+    "Are there any causes or ideologies your character is passionate about?"
+  ],
+  "relationships": [
+    "Does your character have any close friends or allies?",
+    "How does your character feel about romantic relationships?",
+    "Are there any enemies or rivals in your character's past?"
+  ],
+  "secrets": [
+    "Does your character have any secrets from their past?",
+    "Is there a mysterious event or aspect of your character's history?",
+    "Are there any hidden talents or abilities your character possesses?"
+  ],
+  "weakness": [
+    "What does your character fear the most?",
+    "Are there any weaknesses or vulnerabilities your character is aware of?",
+    "How does your character cope with their fears?"
+  ],
+  "interests": [
+    "What does your character enjoy doing in their free time?",
+    "Are there any hobbies or interests your character pursues outside of adventuring?",
+    "Does your character have any artistic or creative talents?"
+  ],
+  "quirks": [
+    "Does your character have any unusual habits or quirks?",
+    "What are some idiosyncrasies that make your character unique?",
+    "How does your character react in certain situations?"
+  ],
+  "morality": [
+    "How does your character view the concepts of good and evil?",
+    "What alignment best describes your character's moral compass?",
+    "Are there any moral dilemmas your character has faced?"
+  ]
+}
