@@ -1,7 +1,8 @@
 # Character Questions
 
-Character Questions is a WIP module for Foundry VTT designed to assist GMs in guiding their players through character development. This module provides a curated list of categorized questions that gamemasters can use to prompt discussions with their players, helping them develop and understand their characters better.
-The module posts a random question to chat (for GMs) based on the different selected categories.
+Character Questions is a WIP module for Foundry VTT designed to assist GMs in guiding their players through character development. It gives players the ability to flesh out their existing characters by answering questions about them.
+This module provides a curated list of categorized questions that can be to prompt discussions, helping the players develop and understand their characters better.
+The module posts a random question to chat based on the different selected categories.
 
 ## Contributing
 
