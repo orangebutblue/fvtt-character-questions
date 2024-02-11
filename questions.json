@@ -186,10 +186,6 @@
     {"en":  "What’s your favorite subject to discuss? Why?"},
     {"en":  "What do you like and dislike most about your current profession?"}
   ],
-  "morality": [
-    "How does your character view the concepts of good and evil?",
-    "What alignment best describes your character's moral compass?",
-    "Are there any moral dilemmas your character has faced?"
   "society": [
     {"en": "How much should ones birth affect their status in life?"},
     {"en": "What is your attitude towards wizards and magic?"},
