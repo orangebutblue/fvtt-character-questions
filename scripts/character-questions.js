@@ -4,13 +4,26 @@ class CharacterQuestions extends FormApplication {
             id: "character-questions",
             title: "Character Questions",
             template: "modules/character-questions/templates/form.html",
-            closeOnSubmit: false,
+            closeOnSubmit: true,
         });
     }
 
     getData() {
-        // TODO pass data to form
-        return {};
+        // Retrieve the saved form data
+        const formData = game.settings.get('character-questions', 'formData');
+
+        // Log the retrieved data
+        console.log('Retrieved form data:', formData);
+
+        // Set the selected state for each form field
+        Object.keys(formData).forEach(key => {
+            formData[key + 'Selected'] = formData[key];
+        });
+
+        // Set the value for numQuestions
+        formData.numQuestions = formData.numQuestions || 1;
+
+        return formData;
     }
 
     activateListeners(html) {
@@ -19,14 +32,31 @@ class CharacterQuestions extends FormApplication {
     }
 
     async _updateObject(event, formData) {
-        // handle form submission
+        let formObject = {};
+
+        // Handle text fields and selects
+        $(event.target).serializeArray().forEach(item => {
+            formObject[item.name] = item.value;
+        });
+
+        // Handle checkboxes
+        $(event.target).find('input[type="checkbox"]').each((_, element) => {
+            formObject[element.name] = element.checked;
+        });
+
+        // Log the form data to be saved
+        console.log('Form data to be saved:', formObject);
+
+        // Save the form data
+        game.settings.set('character-questions', 'formData', formObject);
 
         const selectedCategories = Object.fromEntries(Object.entries(formData).filter(([key, value]) => value));
         let numQuestions = parseInt(formData.numQuestions) || 1;
         numQuestions = Math.max(Math.min(numQuestions, 10), 1);
         // console.log(selectedCategories);
 
-        // replace with cdn
+        const selectedLanguage = formData.language || 'en';
+        // TODO replace with cdn
         const jsonUrl = 'https://raw.githubusercontent.com/orangebutblue/CharacterQuestions/main/questions.json';
 
         try {
@@ -41,15 +71,23 @@ class CharacterQuestions extends FormApplication {
                 if (data[category]) {
                     const items = data[category];
                     const gmIds = game.users.filter(user => user.isGM).map(gm => gm.id);
-
-                    for (let i = 0; i < numQuestions; i++) {
-                        const randomItem = items[Math.floor(Math.random() * items.length)];
-                        // TODO remove  selected item from the array to prevent duplicates
-                        console.log(`Random item from ${category}: ${randomItem}`);
+                    if(numQuestions > items.length){
                         ChatMessage.create({
                             user: game.user._id,
                             whisper: gmIds,
-                            content: `"${category}" question:<br/>${randomItem}`,
+                            content: `Warning: You've requested ${numQuestions} questions for <i>${category}</i>, but there are only ${items.length} questions available.`,
+                        });
+                    }
+                    for (let i = 0; i < numQuestions; i++) {
+                        const randomIndex = Math.floor(Math.random() * items.length);
+                        const randomItem = items[randomIndex][selectedLanguage] || items[randomIndex].en;
+
+                        // Remove the selected item from the array to prevent duplicates
+                        items.splice(randomIndex, 1);
+                        ChatMessage.create({
+                            user: game.user._id,
+                            whisper: gmIds,
+                            content: `Question regarding your <i>${category}</i>:<br/><b>${randomItem}</b>`,
                         });
                     }
                 }
@@ -77,4 +115,18 @@ Hooks.on("getSceneControlButtons", (controls) => {
     if (tokenControls) {
         tokenControls.tools.push(newButton);
     }
+});
+Hooks.once('init', function() {
+    game.settings.register('character-questions', 'formData', {
+        name: 'Form Data',
+        hint: 'Data from the form',
+        scope: 'world', // This specifies a world-level setting
+        config: false, // This specifies that the setting does not appear in the settings menu
+        default: {}, // Default value is an empty object
+        type: Object,
+    });
+    // Register Handlebars helper
+    Handlebars.registerHelper('selected', function(value, expectedValue) {
+        return value === expectedValue ? 'selected' : '';
+    });
 });
