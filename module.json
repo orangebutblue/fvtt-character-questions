@@ -1,11 +1,11 @@
 {
-  "id": "character-questions",
+  "id": "fvtt-character-questions",
   "name": "Character Questions",
   "title": "Character Questions",
   "description": "Generates a character question for your players to answer.",
   "authors": [
     {
-      "name": "OrangeButBlue",
+      "name": "Orangebutblue",
       "email": "orangebutblue@protonmail.com",
       "discord": "tundra0001"
     }
@@ -18,7 +18,8 @@
   "version": "0.1.1",
   "compatibility": {
     "minimum": "10",
-    "verified": "11"
+    "verified": "13"
   },
-  "scripts": ["scripts/character-questions.js"]
+  "scripts": ["scripts/character-questions.js"],
+  "styles": ["styles/character-questions.css"]
 }

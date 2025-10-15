@@ -9,8 +9,6 @@ const MODULE_VERSION = "0.1.1";
 
 // Global module state
 let debugLogger = null;
-let errorHandler = null;
-let configValidator = null;
 
 /**
  * Character Questions Form Application
@@ -31,7 +29,7 @@ class CharacterQuestions extends FormApplication {
     }
 
     getData() {
-        const formData = game.settings.get(MODULE_ID, 'formData') || {};
+        const formData = game.settings.get(MODULE_ID, 'formData');
         Object.keys(formData).forEach(key => {
             formData[key + 'Selected'] = formData[key];
         });
@@ -94,11 +92,7 @@ class CharacterQuestions extends FormApplication {
             }
         } catch (error) {
             console.error('Character Questions | Error in question generation:', error);
-            if (errorHandler) {
-                errorHandler.handleError(error, 'Question Generation');
-            } else {
-                ui.notifications.error('Error generating questions. Check console for details.');
-            }
+            ui.notifications.error('Error generating questions. Check console for details.');
         }
     }
 }
@@ -107,16 +101,11 @@ class CharacterQuestions extends FormApplication {
 Hooks.once('init', () => {
     console.log('Character Questions | Initializing module');
 
-    // Register Handlebars helpers for V2 Application templates
+    // Register Handlebars helpers
     registerHandlebarsHelpers();
 
     // Register module settings
     registerModuleSettings();
-
-    // Register settings change handlers
-    registerSettingsChangeHandlers();
-
-    // Scene controls will be initialized later in the ready hook
 
     console.log('Character Questions | Module initialized');
 });
@@ -129,22 +118,6 @@ Hooks.once('ready', async () => {
         // Initialize native UI integration
         await initializeProperSceneControls();
 
-        // TEMPORARY: Add a debug button to the UI
-        Hooks.on('renderSidebar', (app, html) => {
-            console.log('Character Questions | renderSidebar hook fired');
-            if ($('#character-questions-test-button').length === 0) {
-                const button = $(`<button id="character-questions-test-button" style="margin: 5px;">
-                    <i class="fas fa-question-circle"></i> Character Questions (Test)
-                </button>`);
-                button.on('click', () => {
-                    console.log('Character Questions | Test button clicked');
-                    openCharacterQuestionsDialog();
-                });
-                html.find('.directory').first().prepend(button);
-                console.log('Character Questions | Test button added to sidebar');
-            }
-        });
-
         console.log('Character Questions | Setup complete');
 
     } catch (error) {
@@ -154,452 +127,38 @@ Hooks.once('ready', async () => {
 });
 
 /**
- * Register Handlebars helpers for V2 Application templates
+ * Register Handlebars helpers for templates
  */
 function registerHandlebarsHelpers() {
-    // Equality helper for template conditionals
-    Handlebars.registerHelper('eq', function(a, b) {
-        return a === b;
+    // Register selected helper for form selects
+    Handlebars.registerHelper('selected', function (value, expectedValue) {
+        return value === expectedValue ? 'selected' : '';
     });
 
-    // Inequality helper
-    Handlebars.registerHelper('ne', function(a, b) {
-        return a !== b;
-    });
-
-    // Greater-than-or-equal helper
-    Handlebars.registerHelper('gte', function(a, b) {
-        if (typeof a === 'string') a = Number(a);
-        if (typeof b === 'string') b = Number(b);
-        return a >= b;
-    });
-
-    // Greater-than helper
-    Handlebars.registerHelper('gt', function(a, b) {
-        if (typeof a === 'string') a = Number(a);
-        if (typeof b === 'string') b = Number(b);
-        return a > b;
-    });
-
-    // Date formatting helper
-    Handlebars.registerHelper('formatDate', function(dateString) {
-        if (!dateString) return 'Unknown';
-        
-        // If it's already in the correct format (YYYY-MM-DD HH:mm), return as is
-        if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(dateString)) {
-            return dateString;
-        }
-        
-        // Try to parse and format the date
-        let date;
-        if (typeof dateString === 'string') {
-            date = new Date(dateString);
-        } else if (dateString instanceof Date) {
-            date = dateString;
-        } else if (typeof dateString === 'number') {
-            date = new Date(dateString);
-        } else {
-            return 'Invalid Date';
-        }
-        
-        // Check if date is valid
-        if (isNaN(date.getTime())) {
-            return 'Invalid Date';
-        }
-        
-        // Format as YYYY-MM-DD HH:mm
-        const year = date.getFullYear().toString();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        
-        return `${year}-${month}-${day} ${hours}:${minutes}`;
-    });
-
-    // Logical AND helper
-    Handlebars.registerHelper('and', function() {
-        const args = Array.prototype.slice.call(arguments, 0, -1);
-        return args.every(Boolean);
-    });
-
-    // Logical OR helper
-    Handlebars.registerHelper('or', function() {
-        const args = Array.prototype.slice.call(arguments, 0, -1);
-        return args.some(Boolean);
-    });
-
-    // Format number helper
-    Handlebars.registerHelper('formatNumber', function(number) {
-        if (typeof number !== 'number') return number;
-        return number.toLocaleString();
-    });
-
-    // Capitalize helper
-    Handlebars.registerHelper('capitalize', function(str) {
-        if (typeof str !== 'string') return str;
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    });
-
-    // Join array helper
-    Handlebars.registerHelper('join', function(array, separator) {
-        if (!Array.isArray(array)) return '';
-        return array.join(separator || ', ');
-    });
-
-    // Keys helper - get object keys
-    Handlebars.registerHelper('keys', function(obj) {
-        if (!obj || typeof obj !== 'object') return [];
-        return Object.keys(obj);
-    });
-
-    // Selected helper - for option elements
-    Handlebars.registerHelper('selected', function(value, compareValue) {
-        return value === compareValue ? 'selected' : '';
-    });
-
-    // Get size name helper
-    Handlebars.registerHelper('getSizeName', function(size) {
-        const sizeNames = {
-            1: 'Hamlet',
-            2: 'Village', 
-            3: 'Town',
-            4: 'City',
-            5: 'Metropolis'
-        };
-        return sizeNames[size] || `Size ${size}`;
-    });
-
-    // Get size description helper (alias for getSizeName for template compatibility)
-    Handlebars.registerHelper('getSizeDescription', function(size) {
-        return Handlebars.helpers.getSizeName(size);
-    });
-
-    // Get wealth name helper
-    Handlebars.registerHelper('getWealthName', function(wealth) {
-        const wealthNames = {
-            1: 'Squalid',
-            2: 'Poor',
-            3: 'Average',
-            4: 'Prosperous',
-            5: 'Wealthy'
-        };
-        return wealthNames[wealth] || `Wealth ${wealth}`;
-    });
-
-    // Get wealth description helper (alias for getWealthName for template compatibility)
-    Handlebars.registerHelper('getWealthDescription', function(wealth) {
-        return Handlebars.helpers.getWealthName(wealth);
-    });
-
-    // Get flag description helper
-    Handlebars.registerHelper('getFlagDescription', function(flag) {
-        try {
-            // Get the dataManager from the global scope
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (!dataManager || !dataManager.sourceFlags) {
-                return `${flag} settlement`;
-            }
-
-            const flagData = dataManager.sourceFlags[flag];
-            if (!flagData) {
-                return `${flag} settlement`;
-            }
-
-            // Format the tooltip with description and effects
-            let tooltip = `<strong>${flag.charAt(0).toUpperCase() + flag.slice(1)}</strong>\n\n`;
-            tooltip += `${flagData.description}\n\n`;
-            tooltip += '<strong>Trading Effects:</strong>\n';
-
-            const effects = [];
-
-            // Add transfer effects
-            if (flagData.supplyTransfer) {
-                effects.push(`• +${Math.round(flagData.supplyTransfer * 100)}% supply transfer rate`);
-            }
-            if (flagData.demandTransfer) {
-                effects.push(`• +${Math.round(flagData.demandTransfer * 100)}% demand transfer rate`);
-            }
-
-            // Add availability bonuses
-            if (flagData.availabilityBonus) {
-                if (flagData.availabilityBonus.producers) {
-                    const value = flagData.availabilityBonus.producers;
-                    const sign = value > 0 ? '+' : '';
-                    effects.push(`• ${sign}${Math.round(value * 100)}% availability bonus for producers`);
-                }
-                if (flagData.availabilityBonus.seekers) {
-                    const value = flagData.availabilityBonus.seekers;
-                    const sign = value > 0 ? '+' : '';
-                    effects.push(`• ${sign}${Math.round(value * 100)}% availability bonus for seekers`);
-                }
-            }
-
-            // Add category transfer effects
-            if (flagData.categorySupplyTransfer) {
-                Object.entries(flagData.categorySupplyTransfer).forEach(([category, value]) => {
-                    const sign = value > 0 ? '+' : '';
-                    effects.push(`• ${sign}${Math.round(value * 100)}% ${category} supply transfer`);
-                });
-            }
-            if (flagData.categoryDemandTransfer) {
-                Object.entries(flagData.categoryDemandTransfer).forEach(([category, value]) => {
-                    const sign = value > 0 ? '+' : '';
-                    effects.push(`• ${sign}${Math.round(value * 100)}% ${category} demand transfer`);
-                });
-            }
-
-            // Add special effects
-            if (flagData.contrabandChance) {
-                effects.push(`• +${Math.round(flagData.contrabandChance * 100)}% chance of contraband goods`);
-            }
-            if (flagData.quality) {
-                effects.push(`• +${Math.round((flagData.quality - 1) * 100)}% quality multiplier`);
-            }
-            if (flagData.uiTags && Array.isArray(flagData.uiTags)) {
-                effects.push(`• UI tags: ${flagData.uiTags.join(', ')}`);
-            }
-
-            tooltip += effects.join('\n');
-
-            return tooltip;
-        } catch (error) {
-            console.warn('Trading Places | Error formatting flag description:', error);
-            return `${flag} settlement`;
-        }
-    });
-
-    // Check if settlement is a trade settlement
-    Handlebars.registerHelper('isTradeSettlement', function(settlement) {
-        if (!settlement || !settlement.flags) return false;
-        return Array.isArray(settlement.flags) && settlement.flags.includes('trade');
-    });
-
-    // Get size rating helper (converts size string to numeric)
-    Handlebars.registerHelper('getSizeRating', function(size) {
-        const sizeMap = {
-            'CS': 5, 'C': 4, 'T': 3, 'ST': 2, 'V': 1, 'F': 1, 'M': 5
-        };
-        if (typeof size === 'string') {
-            return sizeMap[size.toUpperCase()] || 1;
-        }
-        return Number(size) || 1;
-    });
-
-    // Calculate available slots helper
-    Handlebars.registerHelper('calculateAvailableSlots', function(size, wealth) {
-        const sizeRating = Handlebars.helpers.getSizeRating(size);
-        const wealthRating = Number(wealth) || 1;
-        return Math.max(1, Math.floor(sizeRating / 2) + Math.floor(wealthRating / 2));
-    });
-
-    // Math helpers
-    Handlebars.registerHelper('add', function(a, b) {
-        return Number(a) + Number(b);
-    });
-
-    Handlebars.registerHelper('multiply', function(a, b) {
-        return Number(a) * Number(b);
-    });
-
-    Handlebars.registerHelper('divide', function(a, b) {
-        return Number(a) / Number(b);
-    });
-
-    Handlebars.registerHelper('floor', function(a) {
-        return Math.floor(Number(a));
-    });
-
-    Handlebars.registerHelper('min', function(a, b) {
-        return Math.min(Number(a), Number(b));
-    });
-
-    // Get equilibrium state label helper
-    Handlebars.registerHelper('getEquilibriumStateLabel', function(state) {
-        const stateLabels = {
-            'balanced': 'Balanced',
-            'oversupplied': 'Oversupplied',
-            'undersupplied': 'Undersupplied',
-            'desperate': 'Desperate',
-            'blocked': 'Blocked'
-        };
-        return stateLabels[state] || state;
-    });
-
-    // Format time helper
-    Handlebars.registerHelper('formatTime', function(date) {
-        if (!date) return '';
-        const d = new Date(date);
-        return d.toLocaleTimeString();
-    });
-
-    // Calculate available slots helper (using real pipeline logic)
-    Handlebars.registerHelper('calculateCargoSlots', function(settlement, season) {
-        try {
-            // Get the dataManager from the global scope
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (!dataManager) {
-                return 0;
-            }
-
-            return dataManager.calculateCargoSlots(settlement, season);
-        } catch (error) {
-            console.warn('Trading Places | Error calculating cargo slots:', error);
-            return 0;
-        }
-    });
-
-    // Get cargo slots base value helper
-    Handlebars.registerHelper('getCargoSlotsBase', function(size) {
-        const sizeRating = Handlebars.helpers.getSizeRating(size);
-        try {
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (dataManager && dataManager.tradingConfig?.cargoSlots?.basePerSize) {
-                return dataManager.tradingConfig.cargoSlots.basePerSize[sizeRating] || sizeRating;
-            }
-        } catch (error) {
-            console.warn('Trading Places | Error getting cargo slots base:', error);
-        }
-        return sizeRating;
-    });
-
-    // Get cargo slots population contribution helper
-    Handlebars.registerHelper('getCargoSlotsPopulation', function(settlement) {
-        try {
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (dataManager && dataManager.tradingConfig?.cargoSlots?.populationMultiplier && settlement?.population) {
-                return Math.round(settlement.population * dataManager.tradingConfig.cargoSlots.populationMultiplier * 100) / 100;
-            }
-        } catch (error) {
-            console.warn('Trading Places | Error getting population contribution:', error);
-        }
-        return 0;
-    });
-
-    // Get cargo slots size bonus helper
-    Handlebars.registerHelper('getCargoSlotsSizeBonus', function(settlement) {
-        try {
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (dataManager && dataManager.tradingConfig?.cargoSlots?.sizeMultiplier) {
-                const sizeRating = Handlebars.helpers.getSizeRating(settlement?.size);
-                return Math.round(sizeRating * dataManager.tradingConfig.cargoSlots.sizeMultiplier * 100) / 100;
-            }
-        } catch (error) {
-            console.warn('Trading Places | Error getting size bonus:', error);
-        }
-        return 0;
-    });
-
-    // Get cargo slots flag multipliers helper
-    Handlebars.registerHelper('getCargoSlotsFlagMultipliers', function(settlement, season) {
-        try {
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (!dataManager || !dataManager.tradingConfig?.cargoSlots?.flagMultipliers) {
-                return [];
-            }
-
-            const flags = settlement?.flags || [];
-            const multipliers = [];
-
-            flags.forEach(flag => {
-                const multiplier = dataManager.tradingConfig.cargoSlots.flagMultipliers[flag];
-                if (multiplier && multiplier !== 1) {
-                    multipliers.push({
-                        label: flag,
-                        multiplier: multiplier
-                    });
-                }
-            });
-
-            return multipliers;
-        } catch (error) {
-            console.warn('Trading Places | Error getting flag multipliers:', error);
-            return [];
-        }
-    });
-
-    // Get cargo slots calculation breakdown with running totals helper
-    Handlebars.registerHelper('getCargoSlotsCalculationBreakdown', function(settlement, season) {
-        try {
-            const dataManager = window.TradingPlaces?.getDataManager?.();
-            if (!dataManager || !dataManager.tradingConfig?.cargoSlots) {
-                return [];
-            }
-
-            const props = dataManager.getSettlementProperties(settlement);
-            const config = dataManager.tradingConfig.cargoSlots;
-            const flags = props.productionCategories || [];
-
-            const breakdown = [];
-            let currentTotal = 0;
-
-            // Base slots
-            const baseSlots = config.basePerSize?.[String(props.sizeNumeric)] ?? config.basePerSize?.[props.sizeNumeric] ?? Math.max(1, props.sizeNumeric || 1);
-            currentTotal = baseSlots;
-            breakdown.push({
-                label: `Base slots by size: ${baseSlots}`,
-                current: currentTotal.toFixed(2)
-            });
-
-            // Population contribution
-            const populationContribution = (props.population || 0) * (config.populationMultiplier ?? 0);
-            if (populationContribution > 0) {
-                currentTotal += populationContribution;
-                breakdown.push({
-                    label: `Population contribution: +${populationContribution.toFixed(2)}`,
-                    current: currentTotal.toFixed(2)
-                });
-            }
-
-            // Size multiplier bonus
-            const sizeContribution = (props.sizeNumeric || 0) * (config.sizeMultiplier ?? 0);
-            if (sizeContribution > 0) {
-                currentTotal += sizeContribution;
-                breakdown.push({
-                    label: `Size multiplier bonus: +${sizeContribution.toFixed(2)}`,
-                    current: currentTotal.toFixed(2)
-                });
-            }
-
-            // Flag multipliers
-            flags.forEach(flag => {
-                const multiplier = config.flagMultipliers?.[flag.toLowerCase()];
-                if (multiplier && multiplier !== 1) {
-                    const beforeFlag = currentTotal;
-                    currentTotal *= multiplier;
-                    breakdown.push({
-                        label: `Flag: ${flag} ×${multiplier}`,
-                        current: currentTotal.toFixed(2)
-                    });
-                }
-            });
-
-            // Apply hard cap
-            const hardCap = config.hardCap;
-            if (typeof hardCap === 'number' && currentTotal > hardCap) {
-                currentTotal = hardCap;
-            }
-
-            // Final result
-            breakdown.push({
-                label: `Final slots: ${Math.max(1, Math.round(currentTotal))} (capped at ${hardCap})`,
-                current: Math.max(1, Math.round(currentTotal)).toString()
-            });
-
-            return breakdown;
-        } catch (error) {
-            console.warn('Trading Places | Error getting calculation breakdown:', error);
-            return [];
-        }
-    });
-
-    console.log('Trading Places | Handlebars helpers registered');
+        console.log('Character Questions | Handlebars helpers registered');
 }
 
 /**
- * Refresh the active dataset setting choices
+ * Register module settings with FoundryVTT
  */
-function refreshDatasetChoices() {
+function registerModuleSettings() {
+    // Form data setting
+    game.settings.register(MODULE_ID, 'formData', {
+        name: 'Form Data',
+        hint: 'Data from the form',
+        scope: 'world',
+        config: false,
+        default: {},
+        type: Object,
+    });
+
+    console.log('Character Questions | Settings registered');
+}
+
+/**
+ * Initialize proper scene controls integration ONLY
+ */
+async function initializeProperSceneControls() {
     const setting = game.settings.settings.get('trading-places', 'activeDataset');
     if (setting) {
         setting.choices = getAvailableDatasets();
@@ -617,17 +176,163 @@ window.refreshTradingPlacesDatasetChoices = refreshDatasetChoices;
  * Register module settings with FoundryVTT
  */
 function registerModuleSettings() {
-    // Form data setting
-    game.settings.register(MODULE_ID, 'formData', {
-        name: 'Form Data',
-        hint: 'Data from the form',
-        scope: 'world',
+    // Register all module settings using our new system
+    TradingPlacesSettings.registerSettings();
+    
+    // Register user datasets setting first (needed by getAvailableDatasets)
+    game.settings.register(MODULE_ID, "userDatasets", {
+        name: "User Datasets",
+        hint: "List of user-created datasets",
+        scope: "world",
         config: false,
-        default: {},
-        type: Object,
+        type: Array,
+        default: []
     });
 
-    console.log('Character Questions | Settings registered');
+    // Active dataset setting - now with dynamic choices
+    game.settings.register(MODULE_ID, "activeDataset", {
+        name: "TRADING-PLACES.Settings.ActiveDataset.Name",
+        hint: "TRADING-PLACES.Settings.ActiveDataset.Hint",
+        scope: "world",
+        config: true,
+        type: String,
+        default: "wfrp4e",
+        choices: getAvailableDatasets,
+        onChange: onActiveDatasetChange
+    });
+
+    // Current season setting
+    game.settings.register(MODULE_ID, "currentSeason", {
+        name: "TRADING-PLACES.Settings.CurrentSeason.Name",
+        hint: "TRADING-PLACES.Settings.CurrentSeason.Hint",
+        scope: "world",
+        config: false, // Hidden from settings
+        type: String,
+        choices: {
+            "spring": "TRADING-PLACES.Seasons.Spring",
+            "summer": "TRADING-PLACES.Seasons.Summer",
+            "autumn": "TRADING-PLACES.Seasons.Autumn",
+            "winter": "TRADING-PLACES.Seasons.Winter"
+        },
+        default: "spring",
+        onChange: onCurrentSeasonChange
+    });
+
+    // Chat visibility setting
+    game.settings.register(MODULE_ID, "chatVisibility", {
+        name: "TRADING-PLACES.Settings.ChatVisibility.Name",
+        hint: "TRADING-PLACES.Settings.ChatVisibility.Hint",
+        scope: "world",
+        config: true,
+        type: String,
+        choices: {
+            "gm": "TRADING-PLACES.Settings.ChatVisibility.GM",
+            "all": "TRADING-PLACES.Settings.ChatVisibility.All"
+        },
+        default: "gm",
+        onChange: onChatVisibilityChange
+    });
+
+    // Module version setting (for migration tracking)
+    game.settings.register(MODULE_ID, "moduleVersion", {
+        name: "Module Version",
+        hint: "Internal setting for tracking module version",
+        scope: "world",
+        config: false,
+        type: String,
+        default: "0.0.0"
+    });
+
+    // Last dataset validation setting
+    game.settings.register(MODULE_ID, "lastDatasetValidation", {
+        name: "Last Dataset Validation",
+        hint: "Internal setting for tracking dataset validation",
+        scope: "world",
+        config: false,
+        type: String,
+        default: ""
+    });
+
+    // Window state setting for V2 Application
+    game.settings.register(MODULE_ID, "windowState", {
+        name: "Window State",
+        hint: "Stores window position and size for the trading interface",
+        scope: "client",
+        config: false,
+        type: Object,
+        default: {}
+    });
+
+    // Enable debug logging setting
+    game.settings.register(MODULE_ID, "debugLogging", {
+        name: "TRADING-PLACES.Settings.DebugLogging.Name",
+        hint: "TRADING-PLACES.Settings.DebugLogging.Hint",
+        scope: "world",
+        config: false, // Hidden from settings
+        type: Boolean,
+        default: false,
+        onChange: onDebugLoggingChange
+    });
+
+    // Selected region setting (for persistence)
+    game.settings.register(MODULE_ID, "selectedRegion", {
+        name: "Selected Region",
+        hint: "Stores the last selected region in the trading interface",
+        scope: "client",
+        config: false,
+        type: String,
+        default: ""
+    });
+
+    // Selected settlement setting (for persistence)
+    game.settings.register(MODULE_ID, "selectedSettlement", {
+        name: "Selected Settlement",
+        hint: "Stores the last selected settlement in the trading interface",
+        scope: "client",
+        config: false,
+        type: String,
+        default: ""
+    });
+
+    // Cargo availability data setting (for persistence)
+    game.settings.register(MODULE_ID, "cargoAvailabilityData", {
+        name: "Cargo Availability Data",
+        hint: "Stores cargo availability data for all settlements and seasons",
+        scope: "client",
+        config: false,
+        type: Object,
+        default: {}
+    });
+
+    // Seller offers data setting (for persistence)
+    game.settings.register(MODULE_ID, "sellerOffersData", {
+        name: "Seller Offers Data",
+        hint: "Stores seller offers data for all settlements and seasons",
+        scope: "client",
+        config: false,
+        type: Object,
+        default: {}
+    });
+
+    // Transaction history setting (for persistence)
+    game.settings.register(MODULE_ID, "transactionHistory", {
+        name: "Transaction History",
+        hint: "Stores trading transaction history for persistence across sessions",
+        scope: "world",
+        config: false,
+        type: Array,
+        default: []
+    });
+
+    // Cargo capacity setting
+    game.settings.register(MODULE_ID, "cargoCapacity", {
+        name: "Cargo Capacity",
+        hint: "Maximum cargo capacity in EP that players can carry",
+        scope: "world",
+        config: false,
+        type: Number,
+        default: 400
+    });
 }
 
 /**
@@ -1108,189 +813,461 @@ async function onDebugLoggingChange(newValue) {
 }
 
 /**
- * Initialize proper scene controls integration ONLY
+ * Perform settings migration if needed
  */
-async function initializeProperSceneControls() {
-    console.log('Character Questions | Initializing scene controls integration');
+async function performSettingsMigration() {
+    const currentVersion = game.settings.get(MODULE_ID, "moduleVersion");
+
+    if (currentVersion === MODULE_VERSION) {
+        return; // No migration needed
+    }
+
+    console.log(`Trading Places | Migrating from version ${currentVersion} to ${MODULE_VERSION}`);
 
     try {
-        // Use basic fallback directly (no sophisticated classes available)
-        console.log('Character Questions | Using basic scene controls');
-        await initializeBasicSceneControls();
+        // Migration logic based on version
+        if (currentVersion === "0.0.0") {
+            // First time setup
+            await performFirstTimeSetup();
+        } else {
+            // Version-specific migrations
+            await performVersionMigration(currentVersion, MODULE_VERSION);
+        }
+
+        // Update version setting
+        await game.settings.set(MODULE_ID, "moduleVersion", MODULE_VERSION);
+
+        console.log('Trading Places | Migration completed successfully');
+
     } catch (error) {
-        console.error('Character Questions | Scene controls integration failed:', error);
-        ui.notifications.warn('Character Questions scene controls integration failed.');
+        console.error('Trading Places | Migration failed:', error);
+        ui.notifications.error(`Migration failed: ${error.message}`);
+        throw error;
     }
 }
 
 /**
- * Basic scene controls fallback
+ * Perform first time setup
+ */
+async function performFirstTimeSetup() {
+    console.log('Trading Places | Performing first time setup');
+
+    // Set default values if not already set
+    const currentSeason = game.settings.get(MODULE_ID, "currentSeason");
+    if (!currentSeason) {
+        await game.settings.set(MODULE_ID, "currentSeason", "spring");
+    }
+
+    const activeDataset = game.settings.get(MODULE_ID, "activeDataset");
+    if (!activeDataset) {
+        await game.settings.set(MODULE_ID, "activeDataset", "wfrp4e");
+    }
+
+    // Welcome message
+    ui.notifications.info('Welcome to Trading Places! Check the module settings to configure your trading system.');
+}
+
+/**
+ * Perform version-specific migration
+ * @param {string} fromVersion - Previous version
+ * @param {string} toVersion - Target version
+ */
+async function performVersionMigration(fromVersion, toVersion) {
+    console.log(`Trading Places | Migrating from ${fromVersion} to ${toVersion}`);
+
+    // Add version-specific migration logic here
+    // For example:
+    // if (fromVersion < "1.0.0") {
+    //     await migrateToV1();
+    // }
+}
+
+/**
+ * Validate that a dataset exists
+ * @param {string} datasetName - Name of dataset to validate
+ * @returns {Object} - Validation result
+ */
+async function validateDatasetExists(datasetName) {
+    try {
+        // Check if dataset directory exists
+        const datasetPath = `modules/${MODULE_ID}/datasets/${datasetName}`;
+
+        // For now, assume dataset is valid if name is provided
+        // In a real implementation, you would check file system
+        const validDatasets = ['wfrp4e', 'custom'];
+
+        if (!validDatasets.includes(datasetName)) {
+            return {
+                valid: false,
+                errors: [`Dataset '${datasetName}' not found. Available datasets: ${validDatasets.join(', ')}`]
+            };
+        }
+
+        return {
+            valid: true,
+            errors: []
+        };
+
+    } catch (error) {
+        return {
+            valid: false,
+            errors: [error.message]
+        };
+    }
+}
+
+/**
+ * Show validation error dialog with recovery options
+ * @param {Object} validationResult - Validation result object
+ * @param {Object} recoveryProcedures - Recovery procedures object
+ */
+async function showValidationErrorDialog(validationResult, recoveryProcedures) {
+    const content = `
+        <div class="validation-error-dialog">
+            <h3>Configuration Validation Failed</h3>
+            <p><strong>${validationResult.errors.length} error(s) found:</strong></p>
+            <ul>
+                ${validationResult.errors.slice(0, 5).map(error => `<li>${error}</li>`).join('')}
+                ${validationResult.errors.length > 5 ? `<li><em>... and ${validationResult.errors.length - 5} more errors</em></li>` : ''}
+            </ul>
+            
+            ${validationResult.warnings.length > 0 ? `
+                <p><strong>${validationResult.warnings.length} warning(s):</strong></p>
+                <ul>
+                    ${validationResult.warnings.slice(0, 3).map(warning => `<li>${warning}</li>`).join('')}
+                    ${validationResult.warnings.length > 3 ? `<li><em>... and ${validationResult.warnings.length - 3} more warnings</em></li>` : ''}
+                </ul>
+            ` : ''}
+            
+            <h4>Recommended Actions:</h4>
+            <ol>
+                ${recoveryProcedures.general.slice(0, 3).map(step => `<li>${step}</li>`).join('')}
+            </ol>
+            
+            <p><em>Check the browser console for a detailed diagnostic report.</em></p>
+        </div>
+    `;
+
+    return new Promise((resolve) => {
+        if (typeof WFRPConfigErrorDialog !== 'undefined') {
+            WFRPConfigErrorDialog.show(validationResult, recoveryProcedures).then(() => resolve());
+        } else {
+            // Fallback to notification
+            ui.notifications.error(`Configuration validation failed with ${validationResult.errors.length} errors. Check console for details.`);
+            console.error('Trading Places | Validation errors:', validationResult.errors);
+            resolve();
+        }
+    });
+}
+
+/**
+ * Initialize core components with error handling
+ */
+async function initializeCoreComponents() {
+    console.log('Trading Places | Initializing core components');
+
+    try {
+        // Initialize DataManager
+        dataManager = new DataManager();
+        dataManager.setModuleId(MODULE_ID);
+        
+        // Expose DataManager globally for Data Management UI
+        window.TradingPlacesDataManager = dataManager;
+        
+        console.log('Trading Places | DataManager initialized');
+
+        // Initialize SystemAdapter
+        systemAdapter = new SystemAdapter();
+
+        // Connect error handler
+        if (errorHandler) {
+            systemAdapter.setErrorHandler(errorHandler);
+        }
+
+        // Validate system compatibility
+        const systemValidation = systemAdapter.validateSystemCompatibility();
+        if (!systemValidation.compatible) {
+            const errorMessage = `System compatibility issues: ${systemValidation.errors.join(', ')}`;
+            if (errorHandler) {
+                errorHandler.handleTradingEngineError(new Error(errorMessage), 'SystemAdapter initialization');
+            }
+            // Continue with warnings but don't fail completely
+            console.warn('Trading Places | System compatibility warnings:', systemValidation.warnings);
+        }
+
+        console.log('Trading Places | SystemAdapter initialized');
+
+        // Initialize TradingEngine
+        if (dataManager) {
+            tradingEngine = new TradingEngine(dataManager);
+
+            // Set current season with error handling
+            try {
+                const currentSeason = game.settings.get(MODULE_ID, "currentSeason");
+                if (currentSeason) {
+                    tradingEngine.setCurrentSeason(currentSeason);
+                } else {
+                    // Set default season
+                    await game.settings.set(MODULE_ID, "currentSeason", "spring");
+                    tradingEngine.setCurrentSeason("spring");
+                    console.log('Trading Places | Set default season to spring');
+                }
+            } catch (seasonError) {
+                if (errorHandler) {
+                    errorHandler.handleTradingEngineError(seasonError, 'Season initialization');
+                }
+                // Use fallback season
+                tradingEngine.setCurrentSeason("spring");
+            }
+
+            console.log('Trading Places | TradingEngine initialized');
+        } else {
+            throw new Error('DataManager required for TradingEngine initialization');
+        }
+
+        console.log('Trading Places | Core components initialized successfully');
+
+    } catch (error) {
+        console.error('Trading Places | Component initialization failed:', error);
+
+        if (errorHandler) {
+            errorHandler.handleDataLoadingError(error, 'Core Components', 'initialization');
+        }
+
+        throw error;
+    }
+}
+
+/**
+ * Load active dataset with comprehensive error handling
+ */
+async function loadActiveDataset() {
+    console.log('Trading Places | Loading active dataset');
+
+    try {
+        if (!dataManager) {
+            throw new Error('DataManager not initialized');
+        }
+
+        const activeDataset = game.settings.get(MODULE_ID, "activeDataset") || "wfrp4e";
+
+        try {
+            await dataManager.loadActiveDataset();
+            console.log(`Trading Places | Successfully loaded dataset: ${activeDataset}`);
+
+            // Validate loaded data
+            const validation = dataManager.validateDatasetCompleteness({
+                settlements: dataManager.settlements,
+                config: dataManager.config
+            });
+
+            if (!validation.valid) {
+                const warningMessage = `Dataset validation warnings: ${validation.errors.join(', ')}`;
+                if (errorHandler) {
+                    errorHandler.notifyUser('warning', warningMessage);
+                }
+                console.warn('Trading Places | Dataset validation warnings:', validation.errors);
+            }
+
+        } catch (datasetError) {
+            // Try fallback to default dataset
+            if (activeDataset !== "wfrp4e") {
+                console.warn(`Trading Places | Failed to load ${activeDataset}, trying default dataset`);
+
+                try {
+                    await dataManager.switchDataset("wfrp4e");
+                    await game.settings.set(MODULE_ID, "activeDataset", "wfrp4e");
+
+                    if (errorHandler) {
+                        errorHandler.notifyUser('warning', `Failed to load dataset '${activeDataset}', switched to default dataset`);
+                    }
+
+                    console.log('Trading Places | Successfully loaded default dataset as fallback');
+
+                } catch (fallbackError) {
+                    // Both datasets failed
+                    if (errorHandler) {
+                        errorHandler.handleDataLoadingError(fallbackError, 'Dataset', 'fallback loading');
+                    }
+                    throw new Error(`Failed to load both active dataset '${activeDataset}' and default dataset: ${fallbackError.message}`);
+                }
+            } else {
+                // Default dataset failed
+                if (errorHandler) {
+                    errorHandler.handleDataLoadingError(datasetError, 'Default Dataset', 'loading');
+                }
+                throw datasetError;
+            }
+        }
+
+    } catch (error) {
+        console.error('Trading Places | Dataset loading failed:', error);
+
+        if (errorHandler) {
+            errorHandler.handleDataLoadingError(error, 'Active Dataset', 'loading');
+        } else {
+            ui.notifications.error(`Failed to load dataset: ${error.message}`, { permanent: true });
+        }
+
+        throw error;
+    }
+}
+
+/**
+ * Initialize proper scene controls integration ONLY
+ */
+async function initializeProperSceneControls() {
+    console.log('Trading Places | Initializing proper scene controls integration');
+
+    try {
+        // Initialize proper scene controls integration if available
+        if (typeof WFRPProperSceneControls !== 'undefined') {
+            const sceneControls = new WFRPProperSceneControls(debugLogger);
+            await sceneControls.initialize();
+            console.log('Trading Places | Proper scene controls initialized successfully');
+        } else {
+            console.warn('Trading Places | WFRPProperSceneControls class not available, using basic fallback');
+            await initializeBasicSceneControls();
+        }
+    } catch (error) {
+        console.error('Trading Places | Scene controls integration failed:', error);
+        ui.notifications.warn('Trading scene controls integration failed.');
+    }
+}
+
+/**
+ * Basic scene controls fallback when WFRPProperSceneControls class is not available
  */
 async function initializeBasicSceneControls() {
-    console.log('Character Questions | Initializing scene controls');
+    console.log('Trading Places | Initializing basic scene controls fallback');
     
     try {
-        // Detect Foundry version
-        const majorVersion = parseInt(game.version?.split('.')[0] || '0');
-        console.log('Character Questions | Detected Foundry version:', game.version, 'Major:', majorVersion);
+        // Register the scene controls hook directly since the class approach isn't working
+        console.log('Trading Places | Registering scene controls hook directly as fallback');
         
-        // Register the appropriate hook based on version
-        const hookName = majorVersion >= 12 ? 'getSceneControls' : 'getSceneControlButtons';
-        console.log('Character Questions | Using hook:', hookName);
-        
-        Hooks.on(hookName, (controls) => {
-            console.log('Character Questions | Scene controls hook fired - adding controls');
-            console.log('Character Questions | Current controls:', controls.map(c => c.name));
+        Hooks.on('getSceneControlButtons', (controls) => {
+            console.log('Trading Places | getSceneControlButtons hook fired - adding trading controls');
             
             // Check if our control already exists to prevent duplicates
-            const existingControl = controls.find(c => c.name === 'character-questions');
+            const existingControl = controls.find(c => c.name === 'trading-places');
             if (existingControl) {
-                console.log('Character Questions | Control already exists, skipping duplicate');
+                console.log('Trading Places | Trading control already exists, skipping duplicate');
                 return;
             }
             
-            const characterQuestionsControls = {
-                name: 'character-questions',
-                title: 'Character Questions',
-                icon: 'fas fa-question-circle',
+            const tradingControls = {
+                name: 'trading-places',
+                title: 'Trading Places Places',
+                icon: 'fas fa-coins',
                 visible: true,
                 layer: 'TokenLayer',
                 tools: [{
-                    name: 'open-questions',
-                    title: 'Open Character Questions',
-                    icon: 'fas fa-question',
+                    name: 'open-trading',
+                    title: 'Open Trading Interface',
+                    icon: 'fas fa-store',
                     button: true,
                     onClick: () => {
-                        console.log('Character Questions | Button clicked!');
+                        console.log('Trading Places | Trading button clicked!');
                         
-                        // Try to open the questions dialog
+                        // Try to open the trading interface
                         try {
-                            openCharacterQuestionsDialog();
+                            if (window.TradingPlacesEnhancedDialog) {
+                                // Get the current controlled actor
+                                const controlledTokens = canvas.tokens.controlled;
+                                let selectedActor = null;
+                                
+                                if (controlledTokens.length > 0) {
+                                    selectedActor = controlledTokens[0].actor;
+                                } else if (game.user.character) {
+                                    selectedActor = game.user.character;
+                                }
+                                
+                                if (selectedActor) {
+                                    const dialog = new window.TradingPlacesEnhancedDialog(selectedActor, null);
+                                    dialog.render(true);
+                                    console.log('Trading Places | Opened EnhancedTradingDialog');
+                                } else {
+                                    ui.notifications.warn('Please select a token or assign a character to use the trading interface.');
+                                    console.log('Trading Places | No actor selected for trading');
+                                }
+                            } else if (window.TradingPlacesApplication) {
+                                const app = new window.TradingPlacesApplication();
+                                app.render(true);
+                                console.log('Trading Places | Opened TradingPlacesApplication (fallback)');
+                            } else if (window.WFRPSimpleTradingV2) {
+                                window.WFRPSimpleTradingV2.openDialog();
+                                console.log('Trading Places | Opened WFRPSimpleTradingV2');
+                            } else {
+                                ui.notifications.info('Trading interface clicked! (Interface classes not yet available)');
+                            }
                         } catch (error) {
-                            console.error('Character Questions | Error opening dialog:', error);
-                            ui.notifications.error('Error opening Character Questions dialog. Check console for details.');
+                            console.error('Trading Places | Error opening trading interface:', error);
+                            ui.notifications.error('Error opening trading interface. Check console for details.');
+                        }
+                    }
+                }, {
+                    name: "trading-settings",
+                    title: "Trading Places Settings",
+                    icon: "fas fa-cog",
+                    visible: game.user.isGM,
+                    onClick: () => {
+                        try {
+                            const settingsDialog = new TradingPlacesSettingsDialog();
+                            settingsDialog.render(true);
+                            console.log('Trading Places | Opened settings dialog');
+                        } catch (error) {
+                            console.error('Trading Places | Error opening settings dialog:', error);
+                            ui.notifications.error('Error opening settings dialog. Check console for details.');
                         }
                     }
                 }]
             };
             
-            controls.push(characterQuestionsControls);
-            console.log('Character Questions | Controls added successfully to scene controls');
-            console.log('Character Questions | Updated controls:', controls.map(c => c.name));
+            controls.push(tradingControls);
+            console.log('Trading Places | Trading controls added successfully to scene controls');
         });
         
-        console.log('Character Questions | Scene controls complete - hook registered');
-        
-        // Also listen for render to inject our button into the HTML directly
-        Hooks.on('renderSceneControls', (app, html, data) => {
-            console.log('Character Questions | renderSceneControls fired');
-            
-            // Ensure html is a jQuery object
-            const $html = html instanceof jQuery ? html : $(html);
-            
-            // Check if button already exists
-            if ($html.find('#character-questions-control').length > 0) {
-                console.log('Character Questions | Button already in HTML');
-                return;
-            }
-            
-            console.log('Character Questions | Adding button to scene controls HTML');
-            
-            const majorVersion = parseInt(game.version?.split('.')[0] || '0');
-            
-            if (majorVersion >= 13) {
-                // V13+ uses <menu> elements with buttons
-                const layersMenu = $html.find('menu#scene-controls-layers');
-                
-                if (layersMenu.length > 0) {
-                    console.log('Character Questions | Found v13 layers menu, adding button');
-                    
-                    const buttonLi = $(`
-                        <li id="character-questions-control">
-                            <button type="button" class="control ui-control layer icon fa-solid fa-question-circle" 
-                                    role="tab" data-action="control" data-control="character-questions" 
-                                    data-tooltip="" aria-pressed="false" 
-                                    aria-label="Character Questions" 
-                                    aria-controls="scene-controls-tools">
-                            </button>
-                        </li>
-                    `);
-                    
-                    buttonLi.find('button').on('click', (event) => {
-                        console.log('Character Questions | Scene control button clicked!');
-                        event.preventDefault();
-                        event.stopPropagation();
-                        openCharacterQuestionsDialog();
-                    });
-                    
-                    layersMenu.append(buttonLi);
-                    console.log('Character Questions | Button added to v13 layers menu');
-                } else {
-                    console.warn('Character Questions | Could not find v13 layers menu');
-                }
-            } else {
-                // V11/V12 use <ol> elements with <li> items
-                let controlsList = $html.find('ol.main-controls');
-                if (controlsList.length === 0) {
-                    controlsList = $html.find('ol.control-tools');
-                }
-                if (controlsList.length === 0) {
-                    controlsList = $html.find('ol').first();
-                }
-                
-                if (controlsList.length > 0) {
-                    console.log('Character Questions | Found v11/v12 controls list, adding button');
-                    
-                    const buttonLi = $(`
-                        <li id="character-questions-control" class="scene-control" data-control="character-questions" title="Character Questions">
-                            <i class="fas fa-question-circle"></i>
-                        </li>
-                    `);
-                    
-                    buttonLi.on('click', (event) => {
-                        console.log('Character Questions | Scene control button clicked!');
-                        event.preventDefault();
-                        openCharacterQuestionsDialog();
-                    });
-                    
-                    controlsList.append(buttonLi);
-                    console.log('Character Questions | Button added to v11/v12 controls list');
-                } else {
-                    console.warn('Character Questions | Could not find any controls list for v11/v12');
-                    console.log('Character Questions | HTML structure:', $html[0]?.outerHTML?.substring(0, 500));
-                }
-            }
-        });
-        
-        // Wait a tick then try to force a refresh of the scene controls UI
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        if (ui.controls) {
-            console.log('Character Questions | Attempting to render scene controls UI');
-            console.log('Character Questions | Current ui.controls state:', ui.controls);
-            ui.controls.render(true);
-        } else {
-            console.warn('Character Questions | ui.controls not available');
-        }
+        console.log('Trading Places | Basic scene controls fallback complete - hook registered');
         
     } catch (error) {
-        console.error('Character Questions | Scene controls integration failed:', error);
-        ui.notifications.warn('Character Questions scene controls integration failed.');
+        console.error('Trading Places | Basic scene controls integration failed:', error);
+        ui.notifications.warn('Trading scene controls integration failed.');
     }
 }
 
 /**
- * Open the character questions dialog
+ * Open the trading interface
  */
-function openCharacterQuestionsDialog() {
+function openTradingInterface() {
     try {
-        console.log('Character Questions | Opening dialog');
-        const dialog = new CharacterQuestions();
-        dialog.render(true);
-        console.log('Character Questions | Dialog opened successfully');
+        if (typeof window.TradingPlacesEnhancedDialog !== 'undefined') {
+            // Get the current controlled actor
+            const controlledTokens = canvas.tokens.controlled;
+            let selectedActor = null;
+            
+            if (controlledTokens.length > 0) {
+                selectedActor = controlledTokens[0].actor;
+            } else if (game.user.character) {
+                selectedActor = game.user.character;
+            }
+            
+            if (selectedActor) {
+                const dialog = new window.TradingPlacesEnhancedDialog(selectedActor, null);
+                dialog.render(true);
+            } else {
+                ui.notifications.warn('Please select a token or assign a character to use the trading interface.');
+            }
+        } else if (typeof TradingPlacesApplication !== 'undefined') {
+            const app = new TradingPlacesApplication();
+            app.render(true);
+        } else if (typeof WFRPSimpleTradingApplication !== 'undefined') {
+            WFRPSimpleTradingApplication.create();
+        } else {
+            ui.notifications.error('Trading interface not available.');
+        }
     } catch (error) {
-        console.error('Character Questions | Error opening dialog:', error);
-        ui.notifications.error('Error opening Character Questions. Check console for details.');
+        console.error('Trading Places | Error opening trading interface:', error);
+        ui.notifications.error('Error opening trading interface. Check console for details.');
     }
 }
 
