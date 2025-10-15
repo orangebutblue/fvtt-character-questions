@@ -1,150 +1,79 @@
-<div class="character-questions-container">
-    <div class="character-questions-header">
-        <h2><i class="fas fa-question-circle"></i> Character Questions</h2>
-        <p>Select categories and generate thought-provoking questions to help develop your players' characters. Questions are whispered to GMs for maximum impact.</p>
+<div style="display: flex; flex-direction: column; height: 100%;">
+    <div class="questions-display" id="questions-display">
+        <div class="questions-header">
+            <span>Character Questions</span>
+            <button type="button" id="clear-all-questions" class="clear-btn">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
+        </div>
+        <div class="questions-list" id="questions-list">
+            <div class="empty-state">
+                <i class="fas fa-question-circle"></i>
+                <p>Click category buttons to add questions</p>
+            </div>
+        </div>
     </div>
 
-    <form class="character-questions-form">
+    <div class="bottom-section">
         <div class="categories-section">
-            <h3><i class="fas fa-layer-group"></i> Question Categories</h3>
-
-            <div class="quick-actions">
-                <button type="button" class="quick-action-btn" id="select-all">
-                    <i class="fas fa-check-square"></i> Select All
-                </button>
-                <button type="button" class="quick-action-btn" id="clear-all">
-                    <i class="fas fa-square"></i> Clear All
-                </button>
-                <button type="button" class="quick-action-btn" id="random-selection">
-                    <i class="fas fa-random"></i> Random
-                </button>
-            </div>
-
             <div class="categories-grid">
-                <div class="category-card category-background" data-category="background">
-                    <input type="checkbox" class="category-checkbox" name="background" id="background" {{#if backgroundSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="background">
                     <i class="fas fa-book category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Background</span>
-                        <p class="category-description">Questions about childhood, family, upbringing, and early life experiences.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Background</span>
+                </button>
 
-                <div class="category-card category-motivations" data-category="motivations">
-                    <input type="checkbox" class="category-checkbox" name="motivations" id="motivations" {{#if motivationsSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="motivations">
                     <i class="fas fa-bullseye category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Motivations</span>
-                        <p class="category-description">Questions about goals, dreams, ambitions, and what drives the character.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Motivations</span>
+                </button>
 
-                <div class="category-card category-personality" data-category="personality">
-                    <input type="checkbox" class="category-checkbox" name="personality" id="personality" {{#if personalitySelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="personality">
                     <i class="fas fa-user category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Personality/Traits</span>
-                        <p class="category-description">Questions about temperament, habits, quirks, and behavioral patterns.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Personality</span>
+                </button>
 
-                <div class="category-card category-values" data-category="values">
-                    <input type="checkbox" class="category-checkbox" name="values" id="values" {{#if valuesSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="values">
                     <i class="fas fa-balance-scale category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Beliefs/Values/Morality</span>
-                        <p class="category-description">Questions about ethics, principles, faith, and moral compass.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Values</span>
+                </button>
 
-                <div class="category-card category-relationships" data-category="relationships">
-                    <input type="checkbox" class="category-checkbox" name="relationships" id="relationships" {{#if relationshipsSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="relationships">
                     <i class="fas fa-users category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Relationships</span>
-                        <p class="category-description">Questions about family, friends, rivals, and social connections.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Relationships</span>
+                </button>
 
-                <div class="category-card category-secrets" data-category="secrets">
-                    <input type="checkbox" class="category-checkbox" name="secrets" id="secrets" {{#if secretsSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="secrets">
                     <i class="fas fa-lock category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Secrets/Hidden Past</span>
-                        <p class="category-description">Questions about hidden truths, past mistakes, and concealed aspects.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Secrets</span>
+                </button>
 
-                <div class="category-card category-weakness" data-category="weakness">
-                    <input type="checkbox" class="category-checkbox" name="weakness" id="weakness" {{#if weaknessSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="weakness">
                     <i class="fas fa-exclamation-triangle category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Fear/Weakness</span>
-                        <p class="category-description">Questions about phobias, vulnerabilities, and personal limitations.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Weakness</span>
+                </button>
 
-                <div class="category-card category-interests" data-category="interests">
-                    <input type="checkbox" class="category-checkbox" name="interests" id="interests" {{#if interestsSelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="interests">
                     <i class="fas fa-palette category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Hobbies/Interests</span>
-                        <p class="category-description">Questions about passions, skills, leisure activities, and talents.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Interests</span>
+                </button>
 
-                <div class="category-card category-society" data-category="society">
-                    <input type="checkbox" class="category-checkbox" name="society" id="society" {{#if societySelected}}checked{{/if}}>
+                <button type="button" class="category-btn" data-category="society">
                     <i class="fas fa-city category-icon"></i>
-                    <div class="category-content">
-                        <span class="category-label">Society</span>
-                        <p class="category-description">Questions about culture, social norms, and societal expectations.</p>
-                    </div>
-                </div>
+                    <span class="category-label">Society</span>
+                </button>
             </div>
         </div>
 
         <div class="settings-section">
-            <h3><i class="fas fa-cog"></i> Settings</h3>
             <div class="settings-grid">
                 <div class="setting-item">
-                    <label class="setting-label" for="num-questions">
-                        <i class="fas fa-hashtag"></i> Number of Questions
-                    </label>
-                    <div class="setting-input-group">
-                        <input type="number" class="setting-input" id="num-questions" name="numQuestions" value="{{numQuestions}}" min="1" max="10" step="1">
-                        <div class="number-controls">
-                            <button type="button" class="number-btn" id="num-increase">
-                                <i class="fas fa-chevron-up"></i>
-                            </button>
-                            <button type="button" class="number-btn" id="num-decrease">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <label class="setting-label" for="language">
-                        <i class="fas fa-language"></i> Language
-                    </label>
-                    <select class="setting-select" id="language" name="language">
-                        <option value="en" {{selected language 'en'}}>🇺🇸 English</option>
-                        <option value="de" {{selected language 'de'}}>🇩🇪 German</option>
+                    <label class="setting-label" for="language">Language</label>
+                    <select id="language" name="language">
+                        <option value="en">English</option>
+                        <option value="de">German</option>
                     </select>
                 </div>
             </div>
         </div>
-
-        <div class="selection-summary" id="selection-summary" style="display: none;">
-            <p>No categories selected. Choose at least one category to generate questions.</p>
-        </div>
-
-        <div class="generate-section">
-            <button type="submit" class="generate-btn" id="generate-btn">
-                <i class="fas fa-magic"></i>
-                Generate Questions
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
