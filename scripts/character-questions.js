@@ -65,7 +65,12 @@ class CharacterQuestions extends Application {
                 if (data[category] && Array.isArray(data[category])) {
                     const totalQuestions = data[category].length;
                     const blockedInCategory = data[category].filter(q => blockedQuestions.includes(q.en)).length;
-                    counts[category] = totalQuestions - blockedInCategory;
+
+                    // Also subtract questions that are currently selected in this session
+                    const currentCategoryQuestions = (this.questions || []).filter(q => q.category === category);
+                    const selectedInCategory = currentCategoryQuestions.length;
+
+                    counts[category] = totalQuestions - blockedInCategory - selectedInCategory;
                 } else {
                     counts[category] = 0;
                 }
@@ -152,6 +157,9 @@ class CharacterQuestions extends Application {
         html.on('click', '.clear-btn', (event) => {
             this.clearAllQuestions();
         });
+
+        // Initialize blocked questions display
+        this.updateBlockedQuestionsDisplay();
     }
 
     async addQuestion(category) {
@@ -174,10 +182,16 @@ class CharacterQuestions extends Application {
                 const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
 
                 // Filter out blocked questions
-                const availableQuestions = data[category].filter(q => !blockedQuestions.includes(q.en));
+                let availableQuestions = data[category].filter(q => !blockedQuestions.includes(q.en));
+
+                // Also filter out questions that are already selected in the current session
+                const currentCategoryQuestions = (this.questions || []).filter(q => q.category === category);
+                availableQuestions = availableQuestions.filter(q =>
+                    !currentCategoryQuestions.some(selectedQ => selectedQ.questionData.en === q.en)
+                );
 
                 if (availableQuestions.length === 0) {
-                    ui.notifications.warn(`All questions in the ${category} category have been blocked.`);
+                    ui.notifications.warn(`No more unique questions available in the ${category} category. Remove some questions first or try a different category.`);
                     return;
                 }
 
@@ -200,11 +214,8 @@ class CharacterQuestions extends Application {
                 // Update display
                 this.updateQuestionsDisplay();
 
-                // Remove from available questions to prevent duplicates in this session
-                const originalIndex = data[category].findIndex(q => q.en === questionData.en);
-                if (originalIndex !== -1) {
-                    data[category].splice(originalIndex, 1);
-                }
+                // Update category counts since we now have one less available
+                this.updateCategoryCounts();
             } else {
                 ui.notifications.warn(`No questions available in the ${category} category.`);
             }
@@ -222,6 +233,8 @@ class CharacterQuestions extends Application {
         if (this.questions) {
             this.questions = this.questions.filter(q => q.id !== questionId);
             this.updateQuestionsDisplay();
+            // Update category counts since we now have one more available
+            this.updateCategoryCounts();
         }
     }
 
@@ -272,6 +285,8 @@ class CharacterQuestions extends Application {
     clearAllQuestions() {
         this.questions = [];
         this.updateQuestionsDisplay();
+        // Update category counts since all questions are now available again
+        this.updateCategoryCounts();
     }
 
     updateQuestionsDisplay() {
@@ -314,6 +329,27 @@ class CharacterQuestions extends Application {
         const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
         const headerSpan = this.element.find('.toggle-blocked-btn span');
         headerSpan.text(`Blocked Questions (${blockedQuestions.length})`);
+    }
+
+    updateBlockedQuestionsDisplay() {
+        const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+        const blockedList = this.element.find('.blocked-questions-list');
+
+        if (blockedQuestions.length === 0) {
+            blockedList.html('<p class="empty-blocked">No questions blocked</p>');
+            return;
+        }
+
+        const blockedHtml = blockedQuestions.map(question => `
+            <div class="blocked-question-item">
+                <span class="blocked-question-text">${question}</span>
+                <button class="unblock-btn" data-question="${question}" title="Unblock this question">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+
+        blockedList.html(blockedHtml);
     }
 
     async updateCategoryCounts() {

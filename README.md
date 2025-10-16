@@ -19,7 +19,7 @@ Then select the categories you want questions from (I recommend only using a sin
 
 All questions will be whispered to the GM. If you like a question, right-click it and select 'Reveal to Everyone' (or just ask them the question yourself).
 
-![Profoundry UI](media/screenshot.png)
+![Profoundry UI](https://raw.githubusercontent.com/orangebutblue/fvtt-profoundry/refs/heads/main/media/screenshot.png)
 
 ## Contributing
 
