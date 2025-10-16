@@ -1,11 +1,10 @@
 /**
- * Character Questions Module
+ * Profoundry Module
  * Main module initialization and hook registration
  */
 
 // Module constants
-const MODULE_ID = "fvtt-character-questions";
-const MODULE_VERSION = "0.1.1";
+const MODULE_ID = "fvtt-profoundry";
 
 // Global module state
 let debugLogger = null;
@@ -29,7 +28,7 @@ class CharacterQuestions extends Application {
             height: 600,
             resizable: true,
             minimizable: true,
-            title: "Character Questions",
+            title: "Profoundry",
         });
     }
 
