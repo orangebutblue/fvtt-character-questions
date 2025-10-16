@@ -299,6 +299,30 @@
     line-height: 1.1;
 }
 
+.category-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--cq-accent);
+    color: white;
+    font-size: 8px;
+    font-weight: 600;
+    padding: 1px 3px;
+    border-radius: 8px;
+    min-width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.category-btn:hover .category-count {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--cq-primary);
+}
+
 /* Settings Section */
 .settings-section {
     padding: 8px 10px;

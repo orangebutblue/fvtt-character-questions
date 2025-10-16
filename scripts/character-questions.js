@@ -32,21 +32,61 @@ class CharacterQuestions extends Application {
         });
     }
 
-    getData() {
+    async getData() {
         const savedData = game.settings.get(MODULE_ID, 'formData') || {};
         const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+
+        // Fetch category counts
+        const categoryCounts = await this.getCategoryCounts(blockedQuestions);
+
         return {
             language: savedData.language || 'en',
             blockedQuestions: blockedQuestions,
-            blockedCount: blockedQuestions.length
+            blockedCount: blockedQuestions.length,
+            categoryCounts: categoryCounts
         };
     }
 
-    async _render(force = false, options = {}) {
-        await super._render(force, options);
-        this.activateListeners(this.element);
-        this.updateQuestionsDisplay();
-        return this.element;
+    async getCategoryCounts(blockedQuestions) {
+        const jsonUrl = 'https://raw.githubusercontent.com/orangebutblue/CharacterQuestions/main/questions.json';
+
+        try {
+            const response = await fetch(jsonUrl);
+            if (!response.ok) {
+                throw new Error(`Error fetching JSON: ${response.statusText}`);
+            }
+            const data = await response.json();
+
+            // Calculate available questions for each category
+            const categories = ['background', 'motivations', 'personality', 'values', 'relationships', 'secrets', 'weakness', 'interests', 'society'];
+            const counts = {};
+
+            categories.forEach(category => {
+                if (data[category] && Array.isArray(data[category])) {
+                    const totalQuestions = data[category].length;
+                    const blockedInCategory = data[category].filter(q => blockedQuestions.includes(q.en)).length;
+                    counts[category] = totalQuestions - blockedInCategory;
+                } else {
+                    counts[category] = 0;
+                }
+            });
+
+            return counts;
+        } catch (error) {
+            console.error('Character Questions | Error fetching category counts:', error);
+            // Return zeros for all categories if fetch fails
+            return {
+                background: 0,
+                motivations: 0,
+                personality: 0,
+                values: 0,
+                relationships: 0,
+                secrets: 0,
+                weakness: 0,
+                interests: 0,
+                society: 0
+            };
+        }
     }
 
     activateListeners(html) {
@@ -207,6 +247,8 @@ class CharacterQuestions extends Application {
                 // Update the blocked count in the header and the list contents
                 this.updateBlockedCount();
                 this.updateBlockedQuestionsDisplay();
+                // Update category counts
+                this.updateCategoryCounts();
             }
             // Remove from current list
             this.deleteQuestion(questionId);
@@ -222,6 +264,8 @@ class CharacterQuestions extends Application {
             ui.notifications.info('Question unblocked.');
             // Update the blocked questions display
             this.updateBlockedQuestionsDisplay();
+            // Update category counts
+            this.updateCategoryCounts();
         }
     }
 
@@ -272,31 +316,17 @@ class CharacterQuestions extends Application {
         headerSpan.text(`Blocked Questions (${blockedQuestions.length})`);
     }
 
-    updateBlockedQuestionsDisplay() {
+    async updateCategoryCounts() {
         const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
-        const blockedList = this.element.find('.blocked-questions-list');
+        const counts = await this.getCategoryCounts(blockedQuestions);
 
-        if (blockedQuestions.length === 0) {
-            blockedList.html(`
-                <div class="no-blocked">
-                    <i class="fas fa-check-circle"></i>
-                    <span>No questions blocked</span>
-                </div>
-            `);
-        } else {
-            const blockedHtml = blockedQuestions.map(question => `
-                <div class="blocked-question-item">
-                    <span class="blocked-question-text">${question}</span>
-                    <button class="unblock-btn" data-question="${question}">
-                        <i class="fas fa-undo"></i>
-                    </button>
-                </div>
-            `).join('');
-            blockedList.html(blockedHtml);
-        }
-
-        // Update the count in the header too
-        this.updateBlockedCount();
+        // Update each category count badge
+        Object.keys(counts).forEach(category => {
+            const countElement = this.element.find(`[data-category="${category}"] .category-count`);
+            if (countElement.length) {
+                countElement.text(counts[category]);
+            }
+        });
     }
 
     close() {

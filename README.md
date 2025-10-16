@@ -1,6 +1,6 @@
 # Profoundry
 
-<img src="https://imgur.com/GsXDccp.png" alt="Profoundry" width="400">
+<img src="media/logo.png" alt="Profoundry" width="400">
 
 
 Profoundry is a WIP module for Foundry VTT designed to assist GMs in guiding their players with their character development. It gives players the ability to flesh out their existing characters by answering questions about them.
@@ -19,7 +19,7 @@ Then select the categories you want questions from (I recommend only using a sin
 
 All questions will be whispered to the GM. If you like a question, right-click it and select 'Reveal to Everyone' (or just ask them the question yourself).
 
-![Profoundry UI](https://i.imgur.com/tM679IY.png)
+![Profoundry UI](media/screenshot.png)
 
 ## Contributing
 
