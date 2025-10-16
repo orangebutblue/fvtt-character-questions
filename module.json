@@ -1,8 +1,8 @@
 {
-  "id": "fvtt-character-questions",
-  "name": "Character Questions",
-  "title": "Character Questions",
-  "description": "Generates a character question for your players to answer.",
+  "id": "fvtt-profoundry",
+  "name": "Profoundry",
+  "title": "Profoundry",
+  "description": "Generates a character question for your players to answer. To help your players build more meaningful characters.",
   "authors": [
     {
       "name": "Orangebutblue",

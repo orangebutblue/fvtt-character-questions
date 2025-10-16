@@ -1,14 +1,15 @@
 # Character Questions
 
-![Character Questions](https://imgur.com/uzyfzkm.png)
+<img src="https://imgur.com/GsXDccp.png" alt="Profoundry" width="400">
 
-Character Questions is a WIP module for Foundry VTT designed to assist GMs in guiding their players with their character development. It gives players the ability to flesh out their existing characters by answering questions about them.
+
+Profoundry is a WIP module for Foundry VTT designed to assist GMs in guiding their players with their character development. It gives players the ability to flesh out their existing characters by answering questions about them.
 This module provides a curated list of categorized questions that can be to prompt discussions, helping the players develop and understand their characters better.
 The module posts a random question to chat based on the different selected categories.
 
 ## Install
 
-`https://raw.githubusercontent.com/orangebutblue/fvtt-character-questions/main/module.json`
+`https://raw.githubusercontent.com/orangebutblue/fvtt-profoundry/main/module.json`
 
 ## Usage
 As a GM, just select the question mark icon from the token control bar
@@ -24,7 +25,7 @@ All questions will be whispered to the GM. If you like a question, right-click i
 ## Contributing
 
 ### Bugs and feature requests
-This is my first Foundry module, so I'm sure there are a lot of things that can be improved. If you find a bug or have a feature request, please open an [issue](https://github.com/orangebutblue/fvtt-character-questions/issues) here on GitHub
+This is my first Foundry module, so I'm sure there are a lot of things that can be improved. If you find a bug or have a feature request, please open an [issue](https://github.com/orangebutblue/fvtt-profoundry/issues) here on GitHub
 
 ### New questions
 Contributions to the Character Questions are welcome! If you want to add your own questions to the module, just add it to the questions.json and send me a merge request. You can add the question in any language you like, however it is mandatory for every question to have at least an English translation.
@@ -38,7 +39,7 @@ Contributions to the Character Questions are welcome! If you want to add your ow
   - Example: "What is your favorite spell?" is not suitable, as it assumes the character is a spellcaster.
 - Before adding a new question, please check if there isn't already a similar question in the list.
 ### Translating
-Character Questions can support multiple languages. If you want, you can translate the existing questions to the language of your choice.
+Profundry can support multiple languages. If you want, you can translate the existing questions to the language of your choice.
 Just add another key to an existing question with your language code and the translation.
 Example:
 ```json
