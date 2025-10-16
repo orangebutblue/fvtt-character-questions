@@ -75,5 +75,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="blocked-questions-section">
+            <div class="blocked-questions-header">
+                <button type="button" class="toggle-blocked-btn">
+                    <i class="fas fa-chevron-right"></i>
+                    <span>Blocked Questions ({{blockedCount}})</span>
+                </button>
+            </div>
+            <div class="blocked-questions-list" style="display: none;">
+                {{#if blockedQuestions.length}}
+                    {{#each blockedQuestions}}
+                        <div class="blocked-question-item">
+                            <span class="blocked-question-text">{{this}}</span>
+                            <button class="unblock-btn" data-question="{{this}}">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        </div>
+                    {{/each}}
+                {{else}}
+                    <div class="no-blocked">
+                        <i class="fas fa-check-circle"></i>
+                        <span>No questions blocked</span>
+                    </div>
+                {{/if}}
+            </div>
+        </div>
     </div>
 </div>

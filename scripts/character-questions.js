@@ -34,8 +34,11 @@ class CharacterQuestions extends Application {
 
     getData() {
         const savedData = game.settings.get(MODULE_ID, 'formData') || {};
+        const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
         return {
             language: savedData.language || 'en',
+            blockedQuestions: blockedQuestions,
+            blockedCount: blockedQuestions.length
         };
     }
 
@@ -80,6 +83,31 @@ class CharacterQuestions extends Application {
             this.sendQuestionToChat(questionId);
         });
 
+        // Block question buttons
+        html.on('click', '.question-block', (event) => {
+            const questionId = event.currentTarget.dataset.questionId;
+            this.blockQuestion(questionId);
+        });
+
+        // Toggle blocked questions section
+        html.on('click', '.toggle-blocked-btn', (event) => {
+            const list = this.element.find('.blocked-questions-list');
+            const icon = this.element.find('.toggle-blocked-btn i');
+            if (list.is(':visible')) {
+                list.slideUp();
+                icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+            } else {
+                list.slideDown();
+                icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+            }
+        });
+
+        // Unblock question buttons
+        html.on('click', '.unblock-btn', (event) => {
+            const questionText = event.currentTarget.dataset.question;
+            this.unblockQuestion(questionText);
+        });
+
         // Clear all questions
         html.on('click', '.clear-btn', (event) => {
             this.clearAllQuestions();
@@ -102,8 +130,19 @@ class CharacterQuestions extends Application {
             const data = await response.json();
 
             if (data[category] && data[category].length > 0) {
-                const randomIndex = Math.floor(Math.random() * data[category].length);
-                const questionData = data[category][randomIndex];
+                // Get blocked questions
+                const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+
+                // Filter out blocked questions
+                const availableQuestions = data[category].filter(q => !blockedQuestions.includes(q.en));
+
+                if (availableQuestions.length === 0) {
+                    ui.notifications.warn(`All questions in the ${category} category have been blocked.`);
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+                const questionData = availableQuestions[randomIndex];
                 const question = questionData[language] || questionData.en;
 
                 // Create unique ID for this question
@@ -114,16 +153,20 @@ class CharacterQuestions extends Application {
                 this.questions.unshift({
                     id: questionId,
                     category: category,
-                    question: question
+                    question: question,
+                    questionData: questionData // Store the full question data for blocking
                 });
 
                 // Update display
                 this.updateQuestionsDisplay();
 
-                // Remove from available questions to prevent duplicates
-                data[category].splice(randomIndex, 1);
+                // Remove from available questions to prevent duplicates in this session
+                const originalIndex = data[category].findIndex(q => q.en === questionData.en);
+                if (originalIndex !== -1) {
+                    data[category].splice(originalIndex, 1);
+                }
             } else {
-                ui.notifications.warn(`No more questions available in the ${category} category.`);
+                ui.notifications.warn(`No questions available in the ${category} category.`);
             }
 
         } catch (error) {
@@ -145,13 +188,40 @@ class CharacterQuestions extends Application {
     sendQuestionToChat(questionId) {
         const question = this.questions.find(q => q.id === questionId);
         if (question) {
-            const gmIds = game.users.filter(user => user.isGM).map(gm => gm.id);
             ChatMessage.create({
                 user: game.user.id,
-                whisper: gmIds,
                 content: `Question about <i>${question.category.charAt(0).toUpperCase() + question.category.slice(1)}</i>:<br/><b>${question.question}</b>`,
             });
-            ui.notifications.info('Question sent to GM chat!');
+            ui.notifications.info('Question sent to chat!');
+        }
+    }
+
+    blockQuestion(questionId) {
+        const question = this.questions.find(q => q.id === questionId);
+        if (question && question.questionData && question.questionData.en) {
+            const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+            if (!blockedQuestions.includes(question.questionData.en)) {
+                blockedQuestions.push(question.questionData.en);
+                game.settings.set(MODULE_ID, 'blockedQuestions', blockedQuestions);
+                ui.notifications.info('Question blocked from future appearances.');
+                // Update the blocked count in the header and the list contents
+                this.updateBlockedCount();
+                this.updateBlockedQuestionsDisplay();
+            }
+            // Remove from current list
+            this.deleteQuestion(questionId);
+        }
+    }
+
+    unblockQuestion(questionText) {
+        const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+        const index = blockedQuestions.indexOf(questionText);
+        if (index !== -1) {
+            blockedQuestions.splice(index, 1);
+            game.settings.set(MODULE_ID, 'blockedQuestions', blockedQuestions);
+            ui.notifications.info('Question unblocked.');
+            // Update the blocked questions display
+            this.updateBlockedQuestionsDisplay();
         }
     }
 
@@ -183,6 +253,9 @@ class CharacterQuestions extends Application {
                     <button class="question-chat" data-question-id="${q.id}" title="Send to chat">
                         <i class="fas fa-comment"></i>
                     </button>
+                    <button class="question-block" data-question-id="${q.id}" title="Block this question">
+                        <i class="fas fa-ban"></i>
+                    </button>
                     <button class="question-delete" data-question-id="${q.id}" title="Remove this question">
                         <i class="fas fa-times"></i>
                     </button>
@@ -191,6 +264,39 @@ class CharacterQuestions extends Application {
         `).join('');
 
         questionsList.html(questionsHtml);
+    }
+
+    updateBlockedCount() {
+        const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+        const headerSpan = this.element.find('.toggle-blocked-btn span');
+        headerSpan.text(`Blocked Questions (${blockedQuestions.length})`);
+    }
+
+    updateBlockedQuestionsDisplay() {
+        const blockedQuestions = game.settings.get(MODULE_ID, 'blockedQuestions') || [];
+        const blockedList = this.element.find('.blocked-questions-list');
+
+        if (blockedQuestions.length === 0) {
+            blockedList.html(`
+                <div class="no-blocked">
+                    <i class="fas fa-check-circle"></i>
+                    <span>No questions blocked</span>
+                </div>
+            `);
+        } else {
+            const blockedHtml = blockedQuestions.map(question => `
+                <div class="blocked-question-item">
+                    <span class="blocked-question-text">${question}</span>
+                    <button class="unblock-btn" data-question="${question}">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                </div>
+            `).join('');
+            blockedList.html(blockedHtml);
+        }
+
+        // Update the count in the header too
+        this.updateBlockedCount();
     }
 
     close() {
@@ -371,6 +477,16 @@ function registerModuleSettings() {
         config: false,
         default: {},
         type: Object,
+    });
+
+    // Blocked questions setting
+    game.settings.register(MODULE_ID, 'blockedQuestions', {
+        name: 'Blocked Questions',
+        hint: 'List of questions that have been blocked from appearing',
+        scope: 'world',
+        config: false,
+        default: [],
+        type: Array,
     });
 
     console.log('Character Questions | Settings registered');

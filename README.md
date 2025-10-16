@@ -1,4 +1,4 @@
-# Character Questions
+# Profoundry
 
 <img src="https://imgur.com/GsXDccp.png" alt="Profoundry" width="400">
 
@@ -12,15 +12,14 @@ The module posts a random question to chat based on the different selected categ
 `https://raw.githubusercontent.com/orangebutblue/fvtt-profoundry/main/module.json`
 
 ## Usage
-As a GM, just select the question mark icon from the token control bar
+As a GM, just select the question mark icon from the Scene Controls
 
-![Token Control Bar](https://imgur.com/yUOvkXe.png)
 
 Then select the categories you want questions from (I recommend only using a single category at a time) and the number of questions you want to fetch at the same time.
 
 All questions will be whispered to the GM. If you like a question, right-click it and select 'Reveal to Everyone' (or just ask them the question yourself).
 
-![](https://imgur.com/u0vD0fn.png)
+![Profoundry UI](https://i.imgur.com/tM679IY.png)
 
 ## Contributing
 
